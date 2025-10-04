@@ -1,0 +1,10 @@
+# python ignore
+__pycache__/
+.venv/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+client_secret.json
