@@ -18,10 +18,10 @@ load_dotenv()
 
 # Get environment variables
 OAUTH2_CLIENT_SECRET_FILE = os.getenv("OAUTH2_CLIENT_SECRET_FILE")
-REDIRECT_URL = os.getenv("REDIRECT_URL")
+REDIRECT_URI = os.getenv("REDIRECT_URI")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 assert OAUTH2_CLIENT_SECRET_FILE is not None
-assert REDIRECT_URL is not None
+assert REDIRECT_URI is not None
 assert JWT_SECRET_KEY is not None
 
 JWT_ALGORITHM = "HS256"
@@ -56,7 +56,6 @@ def authorize(request: Request):
     )
 
     flow.redirect_uri = REDIRECT_URI
-
     authorization_url, state = flow.authorization_url(
         access_type='offline',
         include_granted_scopes='true',
