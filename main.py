@@ -1,24 +1,46 @@
+from nt import access
 import fastapi
 import google_auth_oauthlib.flow
+from starlette.middleware.sessions import SessionMiddleware
 import requests
 import jwt
 import datetime
 import os
 
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 from fastapi import Request
 from fastapi.responses import RedirectResponse, Response
 
 app = fastapi.FastAPI()
 
+
+load_dotenv()
+
+# Get environment variables
+OAUTH2_CLIENT_SECRET_FILE = os.getenv("OAUTH2_CLIENT_SECRET_FILE")
+REDIRECT_URI = os.getenv("REDIRECT_URI")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+assert OAUTH2_CLIENT_SECRET_FILE is not None
+assert REDIRECT_URI is not None
+assert JWT_SECRET_KEY is not None
+
+JWT_ALGORITHM = "HS256"
 ORIGINS = [
     "http://localhost:5173",
     "https://localhost:5173",
     "https://accounts.google.com",
 ]
-REDIRECT_URI = "https://localhost:8000/oauth2callback"
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-jwt-secret-key-change-this-in-production")
-JWT_ALGORITHM = "HS256"
+SCOPES = [
+    'openid',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+]
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key="your-secret-key"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,17 +49,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SCOPES = [
-    'openid',
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile',
-]
-
-
 @app.get("/authorize")
 def authorize(request: Request):
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-        'client_secret.json',
+        OAUTH2_CLIENT_SECRET_FILE,
         scopes=SCOPES
     )
 
@@ -113,12 +128,21 @@ def decode_jwt_token(token: str):
 @app.get("/user")
 def get_current_user(request: Request):
     """Get current user from JWT token in cookie"""
-    access_token = request.cookies.get("access_token")
+    jwt_token = request.cookies.get("jwt_token")
     
-    if not access_token:
+    if not jwt_token:
         return Response(content="No authentication token found", status_code=401)
     
-    payload = decode_jwt_token(access_token)
+    payload = decode_jwt_token(jwt_token)
+    
+    if not payload:
+        return Response(content="Invalid or expired token", status_code=401)
+    
+    return {
+        "email": payload.get("email"),
+        "name": payload.get("name"),
+        "expires_at": datetime.datetime.fromtimestamp(payload.get("exp"))
+    }
 
 
 if __name__ == "__main__":
