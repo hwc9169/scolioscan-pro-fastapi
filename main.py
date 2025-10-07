@@ -66,7 +66,7 @@ def authorize(request: Request):
 @app.get("/oauth2callback")
 def oauth2callback(state: str, code: str):
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-        'client_secret.json',
+        OAUTH2_CLIENT_SECRET_FILE,
         scopes=SCOPES,
         state=state
     )
